@@ -1,0 +1,160 @@
+Yurun Han
+11596979
+09/23/2021
+
+LAB3pre Work: Processes in an OS Kernel
+DUE: 9-23-2021
+Answer questions below. Submit a (text-edit) file to TA
+
+1. READ List: Chapter 3: 3.1-3.5
+What's a process? (Page 102)
+A: A process is an execution sequence of a single entity identified by the operating system kernel as using system resources.
+
+What's the meaning of:
+   pid, ppid: _A: Process id, Parent process id_
+   status: _A: PROC status = FREE or READY_
+   priority: _A: Scheduling priority_
+   event: _A: Event value to sleep on_
+   exit Code: _A: Exit value_
+
+READ 3.5.2 on Process Family Tree. What are the
+PROC pointers child, sibling, parent used for: 
+A: Keep track of process relationships by maintaining family tree
+
+2.Download samples/LAB3pre/mtx. Run it under Linux.
+   MTX is a multitasking system. It simulates process operations in a
+   Unix/Linux kernel, which include
+              fork, exit, wait, sleep, wakeup, process switching
+
+/*********** A Multitasking System ************/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "type.h"    // PROC struct and system constants
+	
+// global variables:
+PROC proc[NPROC], *running, *freeList, *readyQueue, *sleepList; 
+
+running    = pointer to the current running PROC
+freeList   = a list of all FREE PROCs
+readyQueue = a priority queue of procs that are READY to run
+sleepList  = a list of SLEEP procs, if any.
+
+Run mtx. It first initialize the system, creates an initial process P0.
+P0 has the lowest priotiry 0, all other processes have priority 1
+
+Ater initialization,
+     P0 forks a child prcoess P1, switch process to run P1.
+
+                The display looks like the following
+-----------------------------------------------------------------------------
+Welcome to KCW's Multitasking System
+1. init system
+freeList = [0 0]->[1 0]->[2 0]->[3 0]->[4 0]->[5 0]->[6 0]->[7 0]->[8 0]->NULL
+
+2. create initial process P0
+init complete: P0 running
+
+3. P0 fork P1 : enter P1 into readyQueue
+	     
+4. P0 switch process to run P1
+   P0: switch task
+   proc 0 in scheduler()
+   readyQueue = [1 1]->[0 0]->NULL
+   next running = 1
+   proc 1 resume to body()
+
+proc 1 running: Parent=0 childList = NULL
+freeList  = [2 0]->[3 0]->[4 0]->[5 0]->[6 0]->[7 0]->[8 0]->NULL
+readQueue = [0 0]->NULL
+sleepList = NULL
+input a command: [ps|fork|switch|exit|sleep|wakeup|wait] : 
+----------------------------------------------------------------------------
+5. COMMANDS:
+fork: READ kfork () on Page 109: What does it do?
+A: Create a subtask and put it in the ready queue
+switch: READ tswitch () on Page 108: What does it do?
+A: Implement process context switching
+exit: READ kexit () on Page 112: What does it do?
+A: Terminate the process
+sleep: READ ksleep () on Page 111: What does it do?
+A: The process goes to sleep
+wakeup: READ kwakeup () on Page 112: What does it do?
+A: Wake up the process by putting it in the ready queue and waiting for its turn to run
+wait: READ kwait () on Page 114: What does it do?
+A: Waiting for the zombie child process
+----------------------------------------------------------------------------
+------------------------ TEST REQUIREMENTS ---------------------------------
+6. Step 1: test fork
+While P1 running, enter fork: What happens?
+A: Create child process P2 and switch task to run P2
+Enter fork many times: How many times can P1 fork? 
+A: 7 times. After that, the fork fails because there are no remaining processes in the queue
+
+Enter Control-c to end the program run.
+
+7. Step 2: Test sleep/wakeup
+Run mtx again.
+While P1 running, fork a child P2;
+Switch to run P2. Where did P1 go?
+A: When switching to running P2, the current task P1 calls tswitch(), saves the return address and enters tswitch(). After executing the SAVE part of tswitch(), the task calls the scheduler to select the next running task P2. At this time, the P1 task is running and enters the ready queue first.
+
+P2: Enter sleep, with a value, e.g. 123 to let P2 SLEEP. What happens?
+A: P2 enters the dormant state, and P1 resumes. After putting itself to sleep, P2 will call tswitch() to hand over the CPU to P1
+
+Now, P1 should be running. Enter wakeup with a value, e.g. 234 Did any proc wake up?  
+A: No, a wakeup with value 234 is invalid, because no process is sleeping on event 234.
+
+P1: Enter wakeup with 123 What happens?
+A: P2 wakes up on event 123 and enters the ready queue. When P2 and event 123 enter the sleep state together, the 123 event will wake up P2 again and enter the ready queue
+
+8. Step 3: test child exit/parent wait
+When a proc dies (exit) with a value, it becomes a ZOMBIE, wakeup its parent.
+Parent may issue wait to wait for a ZOMBIE child, and frees the ZOMBIE
+
+Run mtx;
+P1: enter wait; What happens?
+A: Wait for the error to occur because P1 does not have any child.
+
+CASE 1: child exit first, parent wait later
+P1: fork a child P2, switch to P2.
+P2: enter exit, with a value, e.g. 123 ==>; P2 will die with exitCode=123. Which process runs now?
+A: P1 will continue to run, because P1 is the parent process of process P2, exiting will wake up the parent process and initialize the process.
+
+enter ps to see the proc status: P2 status = _A: Zombie_
+(P1 still running) enter wait; What happens?  _A: P1 waits Zombie child_
+                           enter ps; What happened to P2?  _A: P2 is added to the end of free list_
+
+CASE 2: parent wait first, child exit later
+P1: enter fork to fork a child P3
+P1: enter wait; What happens to P1?
+A: P1 goes to sleep, because P1 does not have any zombie child nodes, it will sleep on its own proc address
+P3: Enter exit with a value; What happens? 
+A: Dispose of the child to P1, wake up p1 and P1 and wait for the zombie child
+P1: enter ps; What's the status of P3? 
+A: P3 is added to the end of the free list because P1 is waiting for zombie child
+
+9. Step 4: test Orphans
+When a process with children dies first, all its children become orphans.
+In Unix/Linux, every process (except P0) MUST have a unique parent.
+So, all orphans become P1's children. Hence P1 never dies.
+
+Run mtx again.
+P1: fork child P2, Switch to P2.
+P2: fork several children of its own, e.g. P3, P4, P5 (all in its childList).
+P2: exit with a value. 
+
+P1 should be running WHY?
+A: P2 exits with an exit value of 509, which makes P3, 4, and 5 all orphans. They become children of P1 as P1 will never die
+P1: enter ps to see proc status: which proc is ZOMBIE?
+A: P2 is zombie
+What happened to P2's children? 
+A: Become a child of P1, they are in a state of preparation
+P1: Enter wait; What happens? 
+A: P1 waits for zombie child 2
+P1: Enter wait again; What happens?
+A: P1 goes to sleep and P3 starts to run because P1 does not have any zombie child
+
+How to let P1 READY to run again?
+A: P1 can be ready again by terminating P3
