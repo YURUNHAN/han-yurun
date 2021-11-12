@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
         if (argc > 1)
                 disk = argv[1];
 
-        // comment@打开 diskimage， fd 一开始指向文件的起始位置
+        // comment@Open diskimage, fd initially points to the beginning of the file
         printf("checking EXT2 FS ....");
         if ((fd = open(disk, O_RDWR)) < 0) {
                 printf("open %s failed\n", disk);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
         dev = fd;
 
         /********** read super block  ****************/
-        // comment@读第一个1024字节的内容，是为 super block
+        // comment@Read the first 1024 bytes of content, it is a super block
         get_block(dev, 1, buf);
         sp = (SUPER *)buf;
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         ninodes = sp->s_inodes_count;
         nblocks = sp->s_blocks_count;
 
-        // comment@接着读2048字节的内容，是为 group descriptor
+        // comment@Then read the content of 2048 bytes, which is a group descriptor
         get_block(dev, 2, buf);
         gp = (GD *)buf;
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
         mount_root();
         printf("root refCount = %d\n", root->refCount);
 
-        // comment@进程0号上运行程序，进程0号的当前目录是根
+        // comment@Run the program on process 0, and the current directory of process 0 is the root
         printf("creating P0 as running process\n");
         running = &proc[0];
         running->status = READY;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
                 proc[i].cwd = iget(dev, 2);
         }
 
-        // comment@读入命令的循环
+        // comment@Read the command loop
         while (1) 
         {
                 // printf("input command : [ls|cd|pwd|mkdir|creat|rmdir|link|unlink|symlink|utime|chmod|readlink|quit] ");
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
                 pathname[0] = 0;
                 otherPathname[0] = 0;
 
-                // comment@读入三个字符串，分别存储命令, 路径，另一个路径
+                // comment@Read in three strings, store the command, the path, and the other path respectively
                 sscanf(line, "%s %s %s", cmd, pathname, otherPathname);
                 printf("<<< command=[ %s ], arg1=[ %s ], arg2=[ %s ]\n", cmd, pathname, otherPathname);
 
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
                         symlink(pathname, otherPathname);
                 if (strcmp(cmd, "unlink") == 0)
                         unlink(pathname);
-                // comment@下面的命令用不到
+                // comment@The following commands are not used
                 /*
                 if (strcmp(cmd, "stat") == 0)
                         local_stat(pathname);
