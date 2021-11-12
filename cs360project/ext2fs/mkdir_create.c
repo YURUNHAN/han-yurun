@@ -97,8 +97,8 @@ int kmkdir(MINODE *pmip, char *base)
         return 1;
 }
 
-// comment@增加新 entry 会先看最后的一个 entry 的长度是不是过长，如果过长，且过长的部分足以容纳新的一个 entry ，
-//          这最后一个 entry 就会被 “裁剪”，把新 entry 加到他后面。
+// comment@Adding a new entry will first look at whether the length of the last entry is too long, if it is too long, and the too long part is enough to accommodate a new entry,
+//          This last entry will be "cut", and the new entry will be added to it.
 int enter_child(MINODE *mip, int ino, char *name, int type)
 {
 
@@ -133,7 +133,7 @@ int enter_child(MINODE *mip, int ino, char *name, int type)
                 }
                 // dp now points at the last entry in block
                 cp = (char *)dp;
-                // comment@32b系统需要　4　字节对齐
+                // comment@32b system requires 　4　 byte alignment
                 ideal_length = 4 * ((8 + dp->name_len + 3) / 4);
                 remain = dp->rec_len
                          - ideal_length; // remain = LAST entry's rec_len - its ideal_length
