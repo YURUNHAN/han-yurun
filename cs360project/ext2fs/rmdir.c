@@ -30,11 +30,11 @@ int rmdir_local(char *pathname)
         return 0;
 }
 
-// comment@1. 待删除的 entry 是 block 里第一个也是唯一一个 entry：把后面的 blocks 复制前移。 
-//         2. 待删除的此 entry 是 block 里最后一个 entry：把前面 entry 的长度直接加上当前要删掉的 entry 
-//            （合并前面的 entry 和待删除 entry 的空间）。
-//         3. 待删除的 entry 前有 entry ，后也有 entry ：把后面那个 entry 复制到要删除的 entry 起始处，
-//            并增加后面 entry 的长度（合并后面的 entry 和待删除 entry 的空间）。
+// comment@1. The entry to be deleted is the first and only entry in the block: copy the following blocks and move them forward.
+//         2. The entry to be deleted is the last entry in the block: add the length of the previous entry directly to the entry currently to be deleted
+//            (Merge the previous entry and the space of the entry to be deleted).
+//         3.There is an entry before the entry to be deleted and an entry after it: copy the latter entry to the beginning of the entry to be deleted,
+//            And increase the length of the following entry (merging the space of the following entry and the entry to be deleted).
 void rm_child(MINODE *parent_mip, char *file_name)
 {
         INODE *parent = &parent_mip->INODE;
